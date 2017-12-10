@@ -4,11 +4,20 @@
 #include <string>
 #include <vector>
 #include <cmath>
+#include<Windows.h>
+#include<time.h>
 using namespace std;
 class EigenValue
 {
 public:
+	friend double operator * (EigenValue a, EigenValue b);
+	int count[12];
+	double norm[12];
+	int size;
+	double length;
 	// 剧情，爱情，喜剧，科幻，动作，悬疑，犯罪，恐怖，青春，励志，战争，文艺
+
+	//构造函数
 	EigenValue()
 	{
 		size = 12;
@@ -17,15 +26,21 @@ public:
 			count[i] = 0;
 		}
 	}
+
+	//计算向量长度
 	void CalculateLength()
 	{
 		int sum = 0;
 		for (int i = 0; i < size; i++)
 		{
-			sum += pow(count[i], 2);
+			//sum += pow(count[i], 2);
+			sum += count[i];
 		}
-		length = sqrt(sum);
+		//length = sqrt(sum);
+		length = sum;
 	}
+
+	//计算坐标值
 	void Update(string s)
 	{
 		if (s == "剧情")
@@ -78,6 +93,8 @@ public:
 		}
 		CalculateLength();
 	}
+
+	//向量单位化
 	void normalize()
 	{
 		for (int i = 0; i < size; i++)
@@ -85,12 +102,55 @@ public:
 			norm[i] = count[i] * 1.0 / length;
 		}
 	}
-	friend double operator * (EigenValue a, EigenValue b);
-	int count[12];
-	double norm[12];
-	int size;
-	double length;
 };
+
+class Relation {
+public:
+
+	double distance[5];
+	int position[5];
+	string name[5];
+	Relation() {
+		for (int i = 0; i < 5; i++) {
+			distance[i] = 100;
+			position[i] = 0;
+		}
+	}
+
+	double maxR() {
+		double max = 0;
+		for (int i = 0; i < 5; i++) {
+			if (distance[i] > max) {
+				max = distance[i];
+			}
+		}
+		return max;
+	}
+
+	double minR() {
+		double min = 0;
+		for (int i = 0; i < 5; i++) {
+			if (distance[i] < min) {
+				min = distance[i];
+			}
+		}
+		return min;
+	}
+
+	double min_position() {
+		double min = 0;
+		double position = 0;
+		for (int i = 0; i < 5; i++) {
+			if (distance[i] < min) {
+				min = distance[i];
+				position = i;
+			}
+		}
+		return position;
+	}
+} relation[100];
+
+//向量点乘
 double operator * (EigenValue a, EigenValue b)
 {
 	a.normalize();
@@ -102,6 +162,8 @@ double operator * (EigenValue a, EigenValue b)
 	}
 	return sum;
 }
+
+//用户
 class USER
 {
 public:
@@ -123,6 +185,8 @@ public:
 		cout << eigenvalue.count[eigenvalue.size - 1] << ")" << endl;
 	}
 };
+
+//
 class DataBaseConfig
 {
 public:
@@ -137,6 +201,7 @@ public:
 		con = mysql_init((MYSQL*)0); 
 		mysql_set_character_set(con, "gbk");
 	}
+
 	void SetQuery(string select, string where = "")
 	{
 		if (where == "")
@@ -148,6 +213,17 @@ public:
 			query = "SELECT " + select + " FROM " + tablename + " WHERE " + where;
 		}
 	}
+
+	void DeleteQuery(string where = "") {
+		del = "DELETE FROM " + tablename + " WHERE " + where;
+		mysql_query(con, del);
+	}
+
+	void InsertQuery(string ins = "") {
+		insert = "INSERT INTO " + tablename + " VALUES(" + ins + ")";
+		mysql_query(con, insert);
+	}
+
 	void display()
 	{
 		cout << "The info of this SQL config:" << endl;
@@ -157,6 +233,7 @@ public:
 		cout << "name:" << dbname << endl;
 		cout << "tablename:" << tablename << endl << endl;
 	}
+
 	void connect()
 	{
 		if (con != NULL && mysql_real_connect(con, dbip.c_str(), dbuser.c_str(), dbpasswd.c_str(), dbname.c_str(), 3306/*TCP IP端口*/, NULL/*Unix Socket 连接类型*/, 0/*运行成ODBC数据库标志*/))
@@ -184,6 +261,7 @@ public:
 		}
 		res = mysql_store_result(con);
 	}
+
 	~DataBaseConfig()
 	{
 		cout << "SQL >> mysql_free_result..." << endl;
@@ -196,11 +274,15 @@ public:
 	string dbname;
 	string tablename;
 	string query;
+	string del;
+	string insert;
 	MYSQL * con; //= mysql_init((MYSQL*) 0); 
 	MYSQL_RES *res;
 	MYSQL_ROW row;
 	int rt;//return value
 };
+
+
 void ShowUserList(vector<USER> v)
 {
 	for (int i = 0; i < v.size(); i++)
@@ -209,70 +291,104 @@ void ShowUserList(vector<USER> v)
 	}
 	return;
 }
+
 int main()
 {
-	vector<USER> user_list;
+	while (1) {
+		int time = clock();
+		vector<USER> user_list;
 
-	// 1. Put User List to vector <user_list>
-	DataBaseConfig FindUser("user");
-	//FindUser.display();
-	FindUser.SetQuery("id");
-	FindUser.connect();
-	while (FindUser.row = mysql_fetch_row(FindUser.res))
-	{
-		/**
-		* MYSQL_ROW STDCALL mysql_fetch_row(MYSQL_RES *result);
-		* 检索行
-		*/
-		for (int t = 0; t < mysql_num_fields(FindUser.res); t++)
+		// 1. Put User List to vector <user_list>
+		DataBaseConfig FindUser("user");
+		//FindUser.display();
+		FindUser.SetQuery("id");
+		FindUser.connect();
+		while (FindUser.row = mysql_fetch_row(FindUser.res))
 		{
-			user_list.push_back(USER(FindUser.row[t]));
-		}
-	}
-	ShowUserList(user_list);
-	// User fetched!
-	
-	// 2. For every user, find their movies and count the tags, finally calculate their Eigenvalues
-	for (int i = 0; i < user_list.size(); i++)
-	{
-		DataBaseConfig FindMovies("user_movie");
-		//FindMovies.display();
-		FindMovies.SetQuery("movie_name","user_id = \"" + user_list[i].user_id + "\"" );
-		FindMovies.connect();
-		while (FindMovies.row = mysql_fetch_row(FindMovies.res))
-		{
-			for (int t = 0; t < mysql_num_fields(FindMovies.res); t++)
+			/**
+			* MYSQL_ROW STDCALL mysql_fetch_row(MYSQL_RES *result);
+			* 检索行
+			*/
+			for (int t = 0; t < mysql_num_fields(FindUser.res); t++)
 			{
-				string movie = FindMovies.row[t];
-				DataBaseConfig FindTags("movie");
-				//FindTags.display();
-				FindTags.SetQuery("tag1,tag2,tag3", "movie_name = \"" + movie + "\"");
-				FindTags.connect();
-				while (FindTags.row = mysql_fetch_row(FindTags.res))
+				user_list.push_back(USER(FindUser.row[t]));
+			}
+		}
+		ShowUserList(user_list);
+		// User fetched!
+
+		// 2. For every user, find their movies and count the tags, finally calculate their Eigenvalues
+		for (int i = 0; i < user_list.size(); i++)
+		{
+			DataBaseConfig FindMovies("user_movie");
+			//FindMovies.display();
+			FindMovies.SetQuery("movie_name", "user_id = \"" + user_list[i].user_id + "\"");
+			FindMovies.connect();
+			while (FindMovies.row = mysql_fetch_row(FindMovies.res))
+			{
+				for (int t = 0; t < mysql_num_fields(FindMovies.res); t++)
 				{
-					for (int j = 0; j < mysql_num_fields(FindTags.res); j++)
+					string movie = FindMovies.row[t];
+					DataBaseConfig FindTags("movie");
+					//FindTags.display();
+					FindTags.SetQuery("tag1,tag2,tag3", "movie_name = \"" + movie + "\"");
+					FindTags.connect();
+					while (FindTags.row = mysql_fetch_row(FindTags.res))
 					{
-						user_list[i].eigenvalue.Update(FindTags.row[j]);
+						for (int j = 0; j < mysql_num_fields(FindTags.res); j++)
+						{
+							user_list[i].eigenvalue.Update(FindTags.row[j]);
+						}
 					}
 				}
 			}
 		}
-	}
-	ShowUserList(user_list);
-	// Eigenvalues calculated!
+		ShowUserList(user_list);
+		// Eigenvalues calculated!
 
-	// 3. For every two users, calculate the dot product of their eigenvalues, after that, update their relation and put it to database
-	for (int i = 0; i < user_list.size(); i++)
-	{
-		for (int j = i + 1; j < user_list.size(); j++)
+		// 3. For every two users, calculate the dot product of their eigenvalues, after that, update their relation and put it to database
+
+		for (int i = 0; i < user_list.size(); i++)
 		{
-			double DotProduct = user_list[j].eigenvalue*user_list[j].eigenvalue;
-			// Todo: update their relation and put it to database
+			DataBaseConfig updateRelation("relation");
+			updateRelation.DeleteQuery("user=" + user_list[i].user_id);
+			for (int j = 0; j < user_list.size(); j++)
+			{
+				if (j != i) {
+					double DotProduct = user_list[j].eigenvalue*user_list[j].eigenvalue;
+					// Todo: update their relation and put it to database
+					if (DotProduct > relation[i].minR()) {
+						int position = relation[i].min_position();
+						relation[i].distance[position] = DotProduct;
+						relation[i].position[position] = j;
+						relation[i].name[position] = user_list[j].user_id;
+					}
+					if (DotProduct > relation[j].minR()) {
+						int position = relation[j].min_position();
+						relation[j].distance[position] = DotProduct;
+						relation[j].position[position] = i;
+						relation[j].name[position] = user_list[i].user_id;
+					}
+				}
+			}
+			for (int j = 0; j < 5; j++) {
+				updateRelation.InsertQuery("'" + user_list[i].user_id + "','" + relation[i].name[j]);
+			}
+			if (relation[i].maxR() > 1 / 5) {
+				DataBaseConfig updateRelation1("relation1");
+				for (int j = 0; j < 5; j++) {
+					if (relation[i].distance[j] > 1 / 5) {
+						updateRelation1.InsertQuery("'" + user_list[i].user_id + "','" + relation[i].name[j]);
+					}
+				}
+			}
 		}
+		int time1 = clock() - time;
+		Sleep(86400000 - time1);
 	}
+
 	system("pause");
 	return 0;
-
 }
 /*
 Todo:1. 完成根据特征值决定关系，并更新到数据库的部分	
