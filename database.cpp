@@ -1,11 +1,11 @@
-#include <stdio.h>
+
 #include <mysql.h>
 #include <iostream>
 #include <string>
 #include <vector>
 #include <cmath>
-#include<Windows.h>
-#include<time.h>
+#include <Windows.h>
+#include <time.h>
 using namespace std;
 class EigenValue
 {
@@ -191,18 +191,18 @@ class DataBaseConfig
 {
 public:
 	//database configuartion
-	DataBaseConfig(string table_name, string user = "root", string passwd = "123456", string ip = "123.207.26.102", string dababase_name = "tongdao")
+	DataBaseConfig(string table_name, string user = "qyr", string passwd = "123456", string ip = "123.207.26.102", string dababase_name = "tongdao")
 	{
 		dbuser = user;
 		dbpasswd = passwd;
 		dbip = ip;
 		dbname = dababase_name;
 		tablename = table_name;
-		con = mysql_init((MYSQL*)0); 
+		con = mysql_init((MYSQL*)0);
 		mysql_set_character_set(con, "gbk");
 	}
 
-	void SetQuery(string select, string where = "")
+	void SetFindQuery(string select, string where = "")
 	{
 		if (where == "")
 		{
@@ -214,24 +214,26 @@ public:
 		}
 	}
 
-	void DeleteQuery(string where = "") {
-		del = "DELETE FROM " + tablename + " WHERE " + where;
-		mysql_query(con, del);
-	}
-
-	void InsertQuery(string ins = "") {
-		insert = "INSERT INTO " + tablename + " VALUES(" + ins + ")";
-		mysql_query(con, insert);
-	}
-
-	void display()
+	void SetDeleteQuery(string where = "") 
 	{
-		cout << "The info of this SQL config:" << endl;
-		cout << "user:" << dbuser << endl;
-		cout << "passwd:" << dbpasswd << endl;
-		cout << "ip:" << dbip << endl;
-		cout << "name:" << dbname << endl;
-		cout << "tablename:" << tablename << endl << endl;
+		query = "DELETE FROM " + tablename + " WHERE " + where;
+	}
+
+	void SetInsertQuery(string value = "") 
+	{
+		query = "INSERT INTO " + tablename + " VALUES(" + value + ")";
+	}
+
+	string display()
+	{
+		string s;
+		s += "The info of this SQL config:\n";
+		s += "user:" + dbuser + "\n";
+		s += "passwd:" + dbpasswd + "\n";
+		s += "ip:" + dbip + "\n";
+		s += "name:" + dbname + "\n";
+		s += "tablename:" + tablename + "\n";
+		return s;
 	}
 
 	void connect()
@@ -247,6 +249,7 @@ public:
 				rt = mysql_real_query(con, query.c_str(), strlen(query.c_str()));
 				if (rt)
 				{
+					cout << "SQL >> query(" << query << ") failed!" << endl;
 					printf("SQL >>	Error making query: %s !!!\n", mysql_error(con));
 				}
 				else
@@ -257,7 +260,7 @@ public:
 		}
 		else
 		{
-			MessageBoxA(NULL, "SQL >> Unable to connect the database,check your configuration!", "", NULL);
+			MessageBoxA(NULL,  display().c_str(), "Error", NULL);
 		}
 		res = mysql_store_result(con);
 	}
@@ -274,8 +277,6 @@ public:
 	string dbname;
 	string tablename;
 	string query;
-	string del;
-	string insert;
 	MYSQL * con; //= mysql_init((MYSQL*) 0); 
 	MYSQL_RES *res;
 	MYSQL_ROW row;
@@ -294,14 +295,15 @@ void ShowUserList(vector<USER> v)
 
 int main()
 {
-	while (1) {
+	/*while(1)*/
+	{
 		int time = clock();
 		vector<USER> user_list;
 
 		// 1. Put User List to vector <user_list>
 		DataBaseConfig FindUser("user");
 		//FindUser.display();
-		FindUser.SetQuery("id");
+		FindUser.SetFindQuery("id");
 		FindUser.connect();
 		while (FindUser.row = mysql_fetch_row(FindUser.res))
 		{
@@ -322,7 +324,7 @@ int main()
 		{
 			DataBaseConfig FindMovies("user_movie");
 			//FindMovies.display();
-			FindMovies.SetQuery("movie_name", "user_id = \"" + user_list[i].user_id + "\"");
+			FindMovies.SetFindQuery("movie_name", "user_id = \"" + user_list[i].user_id + "\"");
 			FindMovies.connect();
 			while (FindMovies.row = mysql_fetch_row(FindMovies.res))
 			{
@@ -331,7 +333,7 @@ int main()
 					string movie = FindMovies.row[t];
 					DataBaseConfig FindTags("movie");
 					//FindTags.display();
-					FindTags.SetQuery("tag1,tag2,tag3", "movie_name = \"" + movie + "\"");
+					FindTags.SetFindQuery("tag1,tag2,tag3", "movie_name = \"" + movie + "\"");
 					FindTags.connect();
 					while (FindTags.row = mysql_fetch_row(FindTags.res))
 					{
@@ -350,13 +352,17 @@ int main()
 
 		for (int i = 0; i < user_list.size(); i++)
 		{
-			DataBaseConfig updateRelation("relation");
-			updateRelation.DeleteQuery("user=" + user_list[i].user_id);
+			DataBaseConfig DeleteRelationA("relation");
+			DeleteRelationA.SetDeleteQuery("first = '" + user_list[i].user_id + "'");
+			DeleteRelationA.connect();
+			DataBaseConfig DeleteRelationB("relation");
+			DeleteRelationB.SetDeleteQuery("second = '" + user_list[i].user_id + "'");
+			DeleteRelationB.connect();
 			for (int j = 0; j < user_list.size(); j++)
 			{
 				if (j != i) {
 					double DotProduct = user_list[j].eigenvalue*user_list[j].eigenvalue;
-					// Todo: update their relation and put it to database
+					// Update their relation and put it to database
 					if (DotProduct > relation[i].minR()) {
 						int position = relation[i].min_position();
 						relation[i].distance[position] = DotProduct;
@@ -371,27 +377,34 @@ int main()
 					}
 				}
 			}
-			for (int j = 0; j < 5; j++) {
-				updateRelation.InsertQuery("'" + user_list[i].user_id + "','" + relation[i].name[j]);
+			for (int j = 0; j < 5; j++) 
+			{
+				DataBaseConfig UpdateRelation("relation");
+				UpdateRelation.SetInsertQuery("'" + user_list[i].user_id + "','" + relation[i].name[j] + "'");
+				UpdateRelation.connect();
 			}
-			if (relation[i].maxR() > 1 / 5) {
-				DataBaseConfig updateRelation1("relation1");
-				for (int j = 0; j < 5; j++) {
-					if (relation[i].distance[j] > 1 / 5) {
-						updateRelation1.InsertQuery("'" + user_list[i].user_id + "','" + relation[i].name[j]);
+			if (relation[i].maxR() > 1 / 5) 
+			{
+				for (int j = 0; j < 5; j++) 
+				{
+					if (relation[i].distance[j] > 1 / 5) 
+					{
+						DataBaseConfig UpdateRelation("relation1");
+						UpdateRelation.SetInsertQuery("'" + user_list[i].user_id + "','" + relation[i].name[j] + "'");
+						UpdateRelation.connect();
 					}
 				}
 			}
 		}
 		int time1 = clock() - time;
-		Sleep(86400000 - time1);
+		//Sleep(86400000 - time1);
 	}
 
 	system("pause");
 	return 0;
 }
 /*
-Todo:1. 完成根据特征值决定关系，并更新到数据库的部分	
+Todo:1. 完成根据特征值决定关系，并更新到数据库的部分
 	 2. 每天要自动执行
 	 3. 优化（保留结果？）
 */
