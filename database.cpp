@@ -1,4 +1,3 @@
-
 #include <mysql.h>
 #include <iostream>
 #include <string>
@@ -214,12 +213,12 @@ public:
 		}
 	}
 
-	void SetDeleteQuery(string where = "") 
+	void SetDeleteQuery(string where = "")
 	{
 		query = "DELETE FROM " + tablename + " WHERE " + where;
 	}
 
-	void SetInsertQuery(string value = "") 
+	void SetInsertQuery(string value = "")
 	{
 		query = "INSERT INTO " + tablename + " VALUES(" + value + ")";
 	}
@@ -260,7 +259,7 @@ public:
 		}
 		else
 		{
-			MessageBoxA(NULL,  display().c_str(), "Error", NULL);
+			MessageBoxA(NULL, display().c_str(), "Error", NULL);
 		}
 		res = mysql_store_result(con);
 	}
@@ -353,10 +352,10 @@ int main()
 		for (int i = 0; i < user_list.size(); i++)
 		{
 			DataBaseConfig DeleteRelationA("relation");
-			DeleteRelationA.SetDeleteQuery("first = '" + user_list[i].user_id + "'");
+			DeleteRelationA.SetDeleteQuery("first = '" + user_list[i].user_id + "' and rank = 0");
 			DeleteRelationA.connect();
 			DataBaseConfig DeleteRelationB("relation");
-			DeleteRelationB.SetDeleteQuery("second = '" + user_list[i].user_id + "'");
+			DeleteRelationB.SetDeleteQuery("second = '" + user_list[i].user_id + "' and rank = 0");
 			DeleteRelationB.connect();
 			for (int j = 0; j < user_list.size(); j++)
 			{
@@ -377,20 +376,20 @@ int main()
 					}
 				}
 			}
-			for (int j = 0; j < 5; j++) 
+			for (int j = 0; j < 5; j++)
 			{
 				DataBaseConfig UpdateRelation("relation");
-				UpdateRelation.SetInsertQuery("'" + user_list[i].user_id + "','" + relation[i].name[j] + "'");
+				UpdateRelation.SetInsertQuery("'" + user_list[i].user_id + "','" + relation[i].name[j] + "',0" );
 				UpdateRelation.connect();
 			}
-			if (relation[i].maxR() > 1 / 5) 
+			if (relation[i].maxR() > 1 / 5)
 			{
-				for (int j = 0; j < 5; j++) 
+				for (int j = 0; j < 5; j++)
 				{
-					if (relation[i].distance[j] > 1 / 5) 
+					if (relation[i].distance[j] > 1 / 5)
 					{
-						DataBaseConfig UpdateRelation("relation1");
-						UpdateRelation.SetInsertQuery("'" + user_list[i].user_id + "','" + relation[i].name[j] + "'");
+						DataBaseConfig UpdateRelation("relation");
+						UpdateRelation.SetInsertQuery("'" + user_list[i].user_id + "','" + relation[i].name[j] + "',1");
 						UpdateRelation.connect();
 					}
 				}
@@ -405,6 +404,6 @@ int main()
 }
 /*
 Todo:1. 完成根据特征值决定关系，并更新到数据库的部分
-	 2. 每天要自动执行
-	 3. 优化（保留结果？）
+2. 每天要自动执行
+3. 优化（保留结果？）
 */
