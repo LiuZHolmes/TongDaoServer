@@ -354,9 +354,6 @@ int main()
 			DataBaseConfig DeleteRelationA("relation");
 			DeleteRelationA.SetDeleteQuery("first = '" + user_list[i].user_id + "' and rank = 0");
 			DeleteRelationA.connect();
-			DataBaseConfig DeleteRelationB("relation");
-			DeleteRelationB.SetDeleteQuery("second = '" + user_list[i].user_id + "' and rank = 0");
-			DeleteRelationB.connect();
 			for (int j = 0; j < user_list.size(); j++)
 			{
 				if (j != i) {
